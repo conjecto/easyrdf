@@ -59,7 +59,7 @@ class Client
     private $config = array(
         'maxredirects'    => 5,
         'useragent'       => 'EasyRdf HTTP Client',
-        'timeout'         => 10
+        'timeout'         => 60
     );
 
     /**
@@ -433,14 +433,7 @@ class Client
             }
 
             $headers = $this->prepareHeaders($uri['host'], $port);
-
-            // Open socket to remote server
-            $socket = @fsockopen($host, $port, $errno, $errstr, $this->config['timeout']);
-            if (!$socket) {
-                throw new Exception("Unable to connect to $host:$port ($errstr)");
-            }
-            stream_set_timeout($socket, $this->config['timeout']);
-            $info = stream_get_meta_data($socket);
+            $headers[] = 'Expect:';
 
             // Write the request
             $path = $uri['path'];
@@ -450,35 +443,28 @@ class Client
             if (isset($uri['query'])) {
                 $path .= '?' . $uri['query'];
             }
-            fwrite($socket, "{$this->method} {$path} HTTP/1.1\r\n");
-            foreach ($headers as $k => $v) {
-                if (is_string($k)) {
-                    $v = ucfirst($k) . ": $v";
+
+            $ch = curl_init();
+            curl_setopt($ch, CURLOPT_URL, $uri['scheme']."://".$host.":".$port.$path);
+            curl_setopt($ch, CURLOPT_RETURNTRANSFER, 1);
+            curl_setopt($ch, CURLOPT_HTTPHEADER, $headers);
+            curl_setopt($ch, CURLOPT_CONNECTTIMEOUT, $this->config['timeout']);
+            // curl_setopt($ch, CURLOPT_VERBOSE, 1);
+            curl_setopt($ch, CURLOPT_HEADER, 1);
+            if($this->method === 'POST') {
+                curl_setopt($ch, CURLOPT_POST, 1);
+                // Send the request body, if there is one set
+                if (isset($this->rawPostData)) {
+                    curl_setopt($ch, CURLOPT_POSTFIELDS, $this->rawPostData);
                 }
-                fwrite($socket, "$v\r\n");
             }
-            fwrite($socket, "\r\n");
+            $content = curl_exec($ch);
+            curl_close($ch);
 
-            // Send the request body, if there is one set
-            if (isset($this->rawPostData)) {
-                fwrite($socket, $this->rawPostData);
-            }
+            /* if ($info['timed_out']) {
+                 throw new Exception("Request to $host:$port timed out");
+             }*/
 
-            // Read in the response
-            $content = '';
-            while (!feof($socket) && !$info['timed_out']) {
-                $content .= fgets($socket);
-                $info = stream_get_meta_data($socket);
-            }
-
-            if ($info['timed_out']) {
-                throw new Exception("Request to $host:$port timed out");
-            }
-
-            // FIXME: support HTTP/1.1 100 Continue
-
-            // Close the socket
-            @fclose($socket);
 
             // Parse the response string
             $response = Response::fromString($content);
