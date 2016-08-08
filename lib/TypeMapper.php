@@ -48,6 +48,9 @@ class TypeMapper
     /** The type map registry */
     private static $map = array();
 
+    /** Default resource class */
+    private static $defaultResourceClass = 'EasyRdf\Resource';
+
     /** Get the registered class for an RDF type
      *
      * If a type is not registered, then this method will return null.
@@ -118,6 +121,46 @@ class TypeMapper
         if (isset(self::$map[$type])) {
             unset(self::$map[$type]);
         }
+    }
+
+    /**
+     * @return string           The default Resource class
+     */
+    public static function getDefaultResourceClass()
+    {
+        return self::$defaultResourceClass;
+    }
+
+    /**
+     * Sets the default resource class
+     *
+     * @param  string $class The resource full class name (e.g. \MyCompany\Resource)
+     *
+     * @throws \InvalidArgumentException
+     * @return string           The default Resource class
+     */
+    public static function setDefaultResourceClass($class)
+    {
+        if (!is_string($class) or $class == null or $class == '') {
+            throw new \InvalidArgumentException(
+                "\$class should be a string and cannot be null or empty"
+            );
+        }
+
+        if (!class_exists($class)) {
+            throw new \InvalidArgumentException(
+                "Given class should be an existing class"
+            );
+        }
+
+        $ancestors = class_parents($class);
+        if (($class != 'EasyRdf\Resource') && (empty($ancestors) || !in_array('EasyRdf\Resource', $ancestors))) {
+            throw new \InvalidArgumentException(
+                "Given class should have EasyRdf\\Resource as an ancestor"
+            );
+        }
+
+        return self::$defaultResourceClass = $class;
     }
 }
 
