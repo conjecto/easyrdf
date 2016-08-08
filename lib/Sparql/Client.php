@@ -321,7 +321,7 @@ class Client
             $client->setMethod('POST');
             $client->setUri($this->updateUri);
             $client->setRawData($processed_query);
-            $client->setHeaders('Content-Type', 'application/sparql-update');
+            $client->setHeaders('Content-Type', 'application/sparql-update;charset=UTF-8');
         } elseif ($type == 'query') {
             $re = '(?:(?:\s*BASE\s*<.*?>\s*)|(?:\s*PREFIX\s+.+:\s*<.*?>\s*))*'.
                 '(CONSTRUCT|SELECT|ASK|DESCRIBE)[\W]';
