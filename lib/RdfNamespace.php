@@ -418,7 +418,7 @@ class RdfNamespace
         if ($shortUri === 'a') {
             $namespaces = self::namespaces();
             return $namespaces['rdf'] . 'type';
-        } elseif (preg_match('/^(\w+?):([\w\-]+)$/', $shortUri, $matches)) {
+        } elseif (preg_match('/^(\w*?):([\w\-]+)$/', $shortUri, $matches)) {
             $long = self::get($matches[1]);
             if ($long) {
                 return $long . $matches[2];
